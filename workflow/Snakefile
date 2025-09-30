@@ -1,0 +1,133 @@
+from os.path import join
+from collections import defaultdict
+
+
+ALN_CONFIG = config["align"]
+OUTDIR = ALN_CONFIG["output_dir"]
+ZSCORES = ALN_CONFIG["filter_lt_m6a_zscore"]
+
+# {sm: {'treatment': {'name': str, 'reads': list[str] }, 'control': ... , 'asm_fa': str}}
+SAMPLES = defaultdict(lambda: defaultdict(dict))
+WC_SAMPLES = []
+WC_GROUP = []
+WC_ZSCORE = []
+for sm_cfg in ALN_CONFIG["samples"]:
+    assert (
+        "treatment" in sm_cfg.keys() and "control" in sm_cfg.keys()
+    ), "Both treatment and control needed."
+
+    sample_name = sm_cfg["name"]
+    SAMPLES[sample_name]["asm_fa"] = sm_cfg["asm_fa"]
+    for grp in ["treatment", "control"]:
+        SAMPLES[sample_name][grp]["group"] = sm_cfg[grp]["name"]
+        SAMPLES[sample_name][grp]["reads"] = sm_cfg[grp]["reads"]
+        
+        for zscore in ZSCORES:
+            WC_SAMPLES.append(sample_name)
+            WC_GROUP.append(grp)
+            WC_ZSCORE.append(str(zscore))
+
+
+wildcard_constraints:
+    sm="|".join(WC_SAMPLES),
+    grp="|".join(WC_GROUP),
+    zscore="|".join(WC_ZSCORE),
+
+
+rule merge_modbam:
+    input:
+        bams=lambda wc: SAMPLES[wc.sm][wc.grp]["reads"],
+    output:
+        bam=join(OUTDIR, "{sm}_{grp}_merged_temp.bam"),
+    conda:
+        "general"
+    shell:
+        """
+        samtools merge {input.bams} -o {output.bam}
+        """
+
+
+rule get_read_methyl_prop_stats:
+    input:
+        bn="/project/logsdon_shared/projects/HGSVC3/NA20355_Dimelo/workflow/scripts/mbamstats/target/release/mbamstats",
+        bam=rules.merge_modbam.output.bam,
+    output:
+        read_info=join(OUTDIR, "{sm}_{grp}_read_info.tsv"),
+    shell:
+        """
+        {input.bn} {input.bam} > {output.read_info}
+        """
+
+rule filter_modbam:
+    input:
+        read_info=rules.get_read_methyl_prop_stats.output,
+        bam=rules.merge_modbam.output.bam,
+    output:
+        merged_filtered_bam=join(OUTDIR, "{sm}_{grp}_{zscore}_merged.bam"),
+    shell:
+        """
+        samtools view \
+            --qname-file <(awk '$2 == "A+a." && $4 < {wildcards.zscore}' {input.read_info} | cut -f1 | sort | uniq) \
+            {input.bam} -o {output.merged_filtered_bam}
+        """
+
+
+# TODO: Plot TSV file.
+
+FILTERED_ALN_SM_CONFIG = []
+for sm, sm_cfg in SAMPLES.items():
+    for grp, grp_cfg in sm_cfg.items():
+        for zscore in ZSCORES:
+            FILTERED_ALN_SM_CONFIG.append(
+                {
+                    "name": f"{sm}_{grp}_{zscore}",
+                    "asm_fa": sm_cfg["asm_fa"],
+                    "reads": expand(
+                        rules.filter_modbam.output.merged_filtered_bam,
+                        sm=sm,
+                        grp=grp,
+                        zscore=zscore,
+                    ),
+                    "min_read_length": ALN_CONFIG.get("min_read_length", 30000),
+                }
+            )
+
+# Don't keep samples.
+ALN_CONFIG.pop("samples")
+
+module Align:
+    snakefile:
+        "rules/Snakemake-Aligner/workflow/Snakefile"
+    config:
+        {"samples": FILTERED_ALN_SM_CONFIG, **ALN_CONFIG}
+
+
+use rule * from Align
+
+rule pileup_m6a:
+    input:
+        bam=join(OUTDIR, "{sm}_{grp}_{zscore}.bam"),
+        fa=lambda wc: SAMPLES[wc.sm]["asm_fa"],
+    output:
+        bed=join(OUTDIR, "{sm}_{grp}_{zscore}.bed"),
+    params:
+        motif="AT 0",
+        filter_threshold=0.8,
+    threads: 30
+    shell:
+        """
+        samtools faidx {input.fa}
+        modkit pileup \
+            {input.bam} \
+            {output.bed} \
+            --ref {input.fa} \
+            -t {threads} \
+            --motif {params.motif} \
+            --filter-threshold {params.filter_threshold} 
+        """
+
+
+rule all:
+    input:
+        expand(rules.pileup_m6a.output, zip, sm=WC_SAMPLES, grp=WC_GROUP, zscore=WC_ZSCORE),
+    default_target: True

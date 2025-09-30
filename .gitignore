@@ -1,0 +1,13 @@
+.snakemake
+data
+logs*
+benchmarks*
+results*
+exp
+old
+*.xml
+config*
+nohup*
+*_working
+tmp*
+output.md
