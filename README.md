@@ -1,5 +1,6 @@
 # Snakemake_DiMeLo-seq_Viz
-* WIP
+Workflow to visualize DiMeLo-seq data.
+> WIP
 
 ```yaml
 align:
@@ -7,7 +8,7 @@ align:
   filter_lt_m6a_zscore:
   - 2.0
   # Minimum read length
-  min_read_length: 30000
+  min_read_length: 0
   samples:
     - name: HG00513
       # Assembly to align to
