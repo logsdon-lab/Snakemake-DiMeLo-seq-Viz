@@ -40,7 +40,7 @@ rule merge_modbam:
     output:
         bam=join(OUTDIR, "{sm}_{grp}_merged_temp.bam"),
     conda:
-        "general"
+        "env.yaml"
     shell:
         """
         samtools merge {input.bams} -o {output.bam}
@@ -49,7 +49,7 @@ rule merge_modbam:
 
 rule get_read_methyl_prop_stats:
     input:
-        bn="/project/logsdon_shared/projects/HGSVC3/NA20355_Dimelo/workflow/scripts/mbamstats/target/release/mbamstats",
+        bn="workflow/scripts/bin_mbamstats",
         bam=rules.merge_modbam.output.bam,
     output:
         read_info=join(OUTDIR, "{sm}_{grp}_read_info.tsv"),
@@ -64,6 +64,8 @@ rule filter_modbam:
         bam=rules.merge_modbam.output.bam,
     output:
         merged_filtered_bam=join(OUTDIR, "{sm}_{grp}_{zscore}_merged.bam"),
+    conda:
+        "env.yaml"
     shell:
         """
         samtools view \
@@ -113,6 +115,8 @@ rule pileup_m6a:
     params:
         motif="AT 0",
         filter_threshold=0.8,
+    conda:
+        "env.yaml"
     threads: 30
     shell:
         """

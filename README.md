@@ -1,6 +1,5 @@
 # Snakemake_DiMeLo-seq_Viz
-Workflow to visualize DiMeLo-seq data.
-> WIP
+Workflow to visualize DiMeLo-seq data. For HGSVC centromere paper.
 
 ```yaml
 align:
@@ -34,6 +33,37 @@ align:
   samtools_view_flag: 2308
 ```
 
+To run on UPenn's LPC.
 ```bash
 snakemake -p --configfile config.yaml --sdm conda --executor lsf --rerun-triggers mtime -j 20 -n
 ```
+
+## `mbamstats`
+A binary for a rust script to filter abnormal m6a reads is provided in `workflow/scripts/mbamstats`. This will filter reads by:
+1. Collect reads m6a modification stats for each read:
+    * Count all possible AT sites.
+    * Get all possible m6A sites and filter based on if meet modification threshold of 80%.
+    * Calculate the valid proportion of m6A sites by dividing the total number of valid sites over all possible sites.
+2. Calculate the mean and stdev valid proportion across all reads.
+3. Then, for each read, calculate the valid proporition z-score to be filtered downstream.
+
+To recompile, `rust` is required.
+```bash
+pushd workflow/scripts/mbamstats
+cargo build --release
+rm ../bin_mbamstats && cp target/release/mbamstats ../bin_mbamstats
+popd
+```
+
+## `analysis_workflow_unfilter30.py`
+Script contributed by Shenghan Gao that intersects each pileup from the control and treatment with the centromere region, normalizes the treatment signal by the control, and generates `cenplot` images.
+
+> [!NOTE]
+> Only functions on UPenn's LPC. Must be rewritten to fit use-case.
+
+Briefly, it:
+* Generates 5 kbp non-overlapping windows of the control and treatment pileup.
+* Intersects the pileups with a given centromere array bed file.
+* Subtracts the control pileup from the treatment pileup.
+* Generate a cenplot config toml file.
+* Plots the CENP-A signal.
