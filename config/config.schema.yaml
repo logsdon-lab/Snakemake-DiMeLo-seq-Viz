@@ -1,0 +1,58 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+properties:
+  filter_lt_m6a_zscore:
+    type: array
+    items:
+      type: number
+    default: [2.0]
+  min_read_length:
+    type: integer
+    default: 0
+  window_size:
+    type: integer
+    default: 5000
+  threads_pileup:
+    type: integer
+    default: 1
+  samples:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        asm_fa:
+          type: string
+        bed:
+          type: string
+        tracks:
+          type: object
+        cfg_cenplot:
+          type: string
+          default: config/base_cenplot.toml
+        treatment:
+          type: object
+          additionalProperties: false
+          properties:
+            name:
+              type: string
+            reads:
+              type: array
+              items:
+                type: string
+        control:
+          type: object
+          additionalProperties: false
+          properties:
+            name:
+              type: string
+            reads:
+              type: array
+              items:
+                type: string
+        required:
+        - name
+        - asm_fa
+        - treatment
+        - control

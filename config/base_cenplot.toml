@@ -1,0 +1,56 @@
+[settings]
+format = [ "png", "pdf",]
+transparent = false
+dim = [ 10, 4,]
+legend_prop = 0.05
+axis_h_pad = 0.01
+dpi = 600
+legend_pos = "left"
+layout = "constrained"
+
+# 1
+[[tracks]]
+position = "relative"
+proportion = 0.025
+type = "label"
+path = "sat_annot"
+
+[tracks.options]
+legend = true
+hide_x = true
+legend_title = "Structure"
+legend_title_only = true
+
+# 2
+[[tracks]]
+position = "overlap"
+type = "hor"
+path = "stv"
+
+[tracks.options]
+legend = false
+sort_order = "descending"
+hide_x = true
+bg_border = false
+mer_filter = 0
+hor_filter = 0
+live_only = false
+
+# 3
+[[tracks]]
+position = "relative"
+type = "bar"
+proportion = 0.05
+path = "dimelo"
+
+[tracks.options]
+hide_x = true
+ymin = 0
+legend_title = "Normalized CENP-A\nDiMeLo-Seq signals\n(relative to IgG)"
+legend_title_only = true
+
+# 4
+[[tracks]]
+position = "relative"
+type = "position"
+proportion = 0.005

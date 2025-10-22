@@ -12,6 +12,14 @@ align:
     - name: HG00513
       # Assembly to align to
       asm_fa: /project/logsdon_shared/projects/HGSVC3/new_65_asms_renamed/HG00513-asm-renamed-reort.fa
+      # Bedfile of region.
+      bed: ""
+      # Additional tracks to ad..
+      tracks:
+        sat_annot: ""
+        stv: ""
+      # Format of plot
+      cfg_cenplot: "config/base_cenplot.toml"
       treatment:
         name: CENPA
         reads:
@@ -55,15 +63,11 @@ rm ../bin_mbamstats && cp target/release/mbamstats ../bin_mbamstats
 popd
 ```
 
-## `analysis_workflow_unfilter30.py`
-Script contributed by Shenghan Gao that intersects each pileup from the control and treatment with the centromere region, normalizes the treatment signal by the control, and generates `cenplot` images.
-
-> [!NOTE]
-> Only functions on UPenn's LPC. Must be rewritten to fit use-case.
+## `plot_enrichment.py`
+Original script (`analysis_workflow_unfilter30.py`) contributed by Shenghan Gao. Normalizes the treatment signal by the control and generates `cenplot` images.
 
 Briefly, it:
 * Generates 5 kbp non-overlapping windows of the control and treatment pileup.
-* Intersects the pileups with a given centromere array bed file.
 * Subtracts the control pileup from the treatment pileup.
 * Generate a cenplot config toml file.
 * Plots the CENP-A signal.

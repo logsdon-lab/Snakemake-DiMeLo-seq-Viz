@@ -1,0 +1,4 @@
+*
+!.gitignore
+!base_cenplot.toml
+!config.schema.yaml

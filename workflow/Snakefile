@@ -1,27 +1,29 @@
 from os.path import join
 from collections import defaultdict
+from snakemake.utils import validate
 
 
-ALN_CONFIG = config["align"]
-OUTDIR = ALN_CONFIG["output_dir"]
-ZSCORES = ALN_CONFIG["filter_lt_m6a_zscore"]
+validate(config, "../config/config.schema.yaml")
+
+
+OUTPUT_DIR = config["output_dir"]
+ZSCORES = config["filter_lt_m6a_zscore"]
 
 # {sm: {'treatment': {'name': str, 'reads': list[str] }, 'control': ... , 'asm_fa': str}}
 SAMPLES = defaultdict(lambda: defaultdict(dict))
 WC_SAMPLES = []
 WC_GROUP = []
 WC_ZSCORE = []
-for sm_cfg in ALN_CONFIG["samples"]:
-    assert (
-        "treatment" in sm_cfg.keys() and "control" in sm_cfg.keys()
-    ), "Both treatment and control needed."
-
+for sm_cfg in config["samples"]:
     sample_name = sm_cfg["name"]
     SAMPLES[sample_name]["asm_fa"] = sm_cfg["asm_fa"]
+    SAMPLES[sample_name]["bed"] = sm_cfg["bed"]
+    SAMPLES[sample_name]["tracks"] = sm_cfg.get("tracks", {})
+    SAMPLES[sample_name]["cfg_cenplot"] = sm_cfg.get("cfg_cenplot")
+
     for grp in ["treatment", "control"]:
         SAMPLES[sample_name][grp]["group"] = sm_cfg[grp]["name"]
         SAMPLES[sample_name][grp]["reads"] = sm_cfg[grp]["reads"]
-        
         for zscore in ZSCORES:
             WC_SAMPLES.append(sample_name)
             WC_GROUP.append(grp)
@@ -38,12 +40,13 @@ rule merge_modbam:
     input:
         bams=lambda wc: SAMPLES[wc.sm][wc.grp]["reads"],
     output:
-        bam=join(OUTDIR, "{sm}_{grp}_merged_temp.bam"),
+        bam=join(OUTPUT_DIR, "{sm}_{grp}_merged_temp.bam"),
+    threads: config["threads_pileup"]
     conda:
         "env.yaml"
     shell:
         """
-        samtools merge {input.bams} -o {output.bam}
+        samtools merge --threads {threads} {input.bams} -o {output.bam}
         """
 
 
@@ -52,18 +55,20 @@ rule get_read_methyl_prop_stats:
         bn="workflow/scripts/bin_mbamstats",
         bam=rules.merge_modbam.output.bam,
     output:
-        read_info=join(OUTDIR, "{sm}_{grp}_read_info.tsv"),
+        read_info=join(OUTPUT_DIR, "{sm}_{grp}_read_info.tsv"),
+    threads: 1
     shell:
         """
         {input.bn} {input.bam} > {output.read_info}
         """
+
 
 rule filter_modbam:
     input:
         read_info=rules.get_read_methyl_prop_stats.output,
         bam=rules.merge_modbam.output.bam,
     output:
-        merged_filtered_bam=join(OUTDIR, "{sm}_{grp}_{zscore}_merged.bam"),
+        merged_filtered_bam=join(OUTPUT_DIR, "{sm}_{grp}_{zscore}_merged.bam"),
     conda:
         "env.yaml"
     shell:
@@ -73,8 +78,6 @@ rule filter_modbam:
             {input.bam} -o {output.merged_filtered_bam}
         """
 
-
-# TODO: Plot TSV file.
 
 FILTERED_ALN_SM_CONFIG = []
 for sm, sm_cfg in SAMPLES.items():
@@ -90,48 +93,115 @@ for sm, sm_cfg in SAMPLES.items():
                         grp=grp,
                         zscore=zscore,
                     ),
-                    "min_read_length": ALN_CONFIG.get("min_read_length", 30000),
+                    "min_read_length": config["min_read_length"],
                 }
             )
 
 # Don't keep samples.
-ALN_CONFIG.pop("samples")
+config.pop("samples")
+
 
 module Align:
     snakefile:
         "rules/Snakemake-Aligner/workflow/Snakefile"
     config:
-        {"samples": FILTERED_ALN_SM_CONFIG, **ALN_CONFIG}
+        {"samples": FILTERED_ALN_SM_CONFIG, **config}
 
 
 use rule * from Align
 
+
 rule pileup_m6a:
     input:
-        bam=join(OUTDIR, "{sm}_{grp}_{zscore}.bam"),
+        bam=join(OUTPUT_DIR, "{sm}_{grp}_{zscore}.bam"),
         fa=lambda wc: SAMPLES[wc.sm]["asm_fa"],
+        bed=lambda wc: SAMPLES[wc.sm]["bed"],
     output:
-        bed=join(OUTDIR, "{sm}_{grp}_{zscore}.bed"),
+        bed=join(OUTPUT_DIR, "{sm}_{grp}_{zscore}.bed.gz"),
     params:
         motif="AT 0",
         filter_threshold=0.8,
     conda:
         "env.yaml"
-    threads: 30
+    threads: config["threads_pileup"]
     shell:
         """
         samtools faidx {input.fa}
         modkit pileup \
             {input.bam} \
-            {output.bed} \
+            - \
             --ref {input.fa} \
+            -include-bed {input.bed} \
             -t {threads} \
             --motif {params.motif} \
-            --filter-threshold {params.filter_threshold} 
+            --filter-threshold {params.filter_threshold} | \
+            sort -k1,1 | \
+            bgzip > {output.bed}
+        """
+
+
+rule intersect_tracks:
+    input:
+        tracks=lambda wc: SAMPLES[wc.sm]["tracks"].values(),
+        bed=lambda wc: SAMPLES[wc.sm]["bed"]
+    output:
+        touch(os.path.join(OUTPUT_DIR, "intersect_tracks.done"))
+    conda:
+        "env.yaml"
+    shell:
+        """
+        if [ -z "{input.tracks}" ]; then
+            exit 0
+        fi 
+        for infile in {input.tracks}; do
+            outfile="${{infile}}.tmp"
+            bedtools intersect -a ${{infile}} -b {input.bed} > ${{outfile}}
+        done
+        """
+
+
+rule draw_plot:
+    input:
+        control_bed=lambda wc: expand(
+            rules.pileup_m6a.output, sm=wc.sm, grp="control", zscore=wc.zscore
+        ),
+        treatment_bed=lambda wc: expand(
+            rules.pileup_m6a.output, sm=wc.sm, grp="treatment", zscore=wc.zscore
+        ),
+        tracks_intersect=lambda wc: rules.intersect_tracks.output if SAMPLES[wc.sm]["tracks"] else [],
+        cfg_cenplot=lambda wc: SAMPLES[wc.sm].get("cfg_cenplot", [])
+    output:
+        plot_dir=directory(join(OUTPUT_DIR, "plots", "{sm}_{zscore}")),
+    params:
+        script=workflow.source_path("scripts/plot_enrichment.py"),
+        window=config["window_size"],
+        json_tracks=lambda wc, input: (
+            f'-j "{json.dumps(
+                {dtype: f"{track}.tmp" for dtype, track in SAMPLES[wc.sm]["tracks"].items()}
+            )}"'
+            if input.tracks_intersect
+            else ""
+        ),
+        cfg_cenplot=lambda wc, input: f"--base_cenplot_cfg {input.cfg_cenplot}" if input.cfg_cenplot else ""
+    conda:
+        "env.yaml"
+    shell:
+        """
+        python {params.script} \
+        -t <(zcat {input.treatment_bed} | cut -f1-3,10) \
+        -c <(zcat {input.control_bed} | cut -f1-3,10) \
+        -w {params.window} \
+        -o {output.plot_dir} \
+        {params.json_tracks} {params.cfg_cenplot}
         """
 
 
 rule all:
     input:
-        expand(rules.pileup_m6a.output, zip, sm=WC_SAMPLES, grp=WC_GROUP, zscore=WC_ZSCORE),
+        expand(
+            rules.pileup_m6a.output, zip, sm=WC_SAMPLES, grp=WC_GROUP, zscore=WC_ZSCORE
+        ),
+        expand(
+            rules.draw_plot.output, zip, sm=WC_SAMPLES, zscore=WC_ZSCORE
+        ),
     default_target: True
