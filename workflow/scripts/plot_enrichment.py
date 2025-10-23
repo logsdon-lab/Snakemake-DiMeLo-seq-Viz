@@ -137,7 +137,7 @@ def main():
             if dtype:
                 if not isinstance(df_dtypes.get(dtype), pl.DataFrame):
                     continue
-                outfile = os.path.join(output_dir, f"{chrom}_{dtype}.csv")
+                outfile = os.path.join(output_dir, f"{chrom}_{dtype}.tsv")
                 df_dtypes[dtype].write_csv(
                     outfile, separator="\t", include_header=False
                 )

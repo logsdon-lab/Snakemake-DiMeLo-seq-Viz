@@ -68,7 +68,7 @@ rule pileup_m6a:
         bed=join(OUTPUT_DIR, "{sm}_{grp}.bed.gz"),
     params:
         motif="AT 0",
-        filter_threshold=0.8,
+        filter_threshold=config["filter_threshold"],
     conda:
         "envs/env.yaml"
     threads: config["threads_pileup"]
@@ -167,15 +167,7 @@ rule intersect_tracks:
         """
 
 
-def json_tracks(wc, input) -> str:
-    tracks = {'"dmr"': f'"{input.dmr[0]}"'}
-    if input.tracks_intersect:
-        for dtype, track in SAMPLES[wc.sm]["tracks"].items():
-            tracks[f'"{dtype}"'] = f'"{track}.tmp"'
-    return f'-j "{json.dumps(tracks)}"'
-
-
-rule draw_plot:
+rule generate_coverage_tracks:
     input:
         control_bed=lambda wc: expand(
             rules.pileup_m6a.output,
@@ -187,10 +179,55 @@ rule draw_plot:
             sm=wc.sm,
             grp="treatment",
         ),
+    output:
+        bg_cov_ctrl=join(OUTPUT_DIR, "{sm}_ctrl_cov.bg.gz"),
+        bg_cov_treatment=join(OUTPUT_DIR, "{sm}_treatment_cov.bg.gz"),
+    conda:
+        "envs/env.yaml"
+    shell:
+        """
+        # https://nanoporetech.github.io/modkit/intro_pileup.html#bedmethyl-column-descriptions
+        zcat {input.control_bed} | cut -f1-3,10 | bgzip > {output.bg_cov_ctrl}
+        zcat {input.treatment_bed} | cut -f1-3,10 | bgzip > {output.bg_cov_treatment}
+        """
+
+
+def json_tracks(wc, input) -> str:
+    tracks = {
+        '"dmr"': f'"{input.dmr[0]}"',
+        '"cov_treatment"': f'"{input.cov_treatment_bg}"',
+        '"cov_ctrl"': f'"{input.cov_control_bg}"',
+    }
+    if input.tracks_intersect:
+        for dtype, track in SAMPLES[wc.sm]["tracks"].items():
+            tracks[f'"{dtype}"'] = f'"{track}.tmp"'
+    return f'-j "{json.dumps(tracks)}"'
+
+
+rule draw_plot:
+    input:
+        # modkit pileups
+        control_bed=lambda wc: expand(
+            rules.pileup_m6a.output,
+            sm=wc.sm,
+            grp="control",
+        ),
+        treatment_bed=lambda wc: expand(
+            rules.pileup_m6a.output,
+            sm=wc.sm,
+            grp="treatment",
+        ),
+        # Bedgraph tracks.
+        cov_treatment_bg=rules.generate_coverage_tracks.output.bg_cov_treatment,
+        cov_control_bg=rules.generate_coverage_tracks.output.bg_cov_ctrl,
+        # Differntially methylated regions.
         dmr=rules.filter_dmr_pair.output,
+        # Tracks to add
         tracks_intersect=lambda wc: (
             rules.intersect_tracks.output if SAMPLES[wc.sm]["tracks"] else []
         ),
+        # Configuration file for cenplot.
+        # If track in json_tracks not listed, ignored.
         cfg_cenplot=lambda wc: SAMPLES[wc.sm].get("cfg_cenplot", []),
     output:
         plot_dir=directory(join(OUTPUT_DIR, "plots", "{sm}")),

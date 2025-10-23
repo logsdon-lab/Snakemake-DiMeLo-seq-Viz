@@ -9,6 +9,10 @@ properties:
   threads_pileup:
     type: integer
     default: 1
+  filter_threshold:
+    type: number
+    default: 0.95
+    description: Pileup threshold for modkit pileup.
   samples:
     type: array
     items:
@@ -17,23 +21,30 @@ properties:
       properties:
         name:
           type: string
+          description: Name of sample.
         asm_fa:
           type: string
+          description: Assembly to align DiMeLo-seq reads against.
         bed:
           type: string
+          description: BED file of regions to visualize.
         tracks:
           type: object
+          description: Tracks to plot. Each key should match the name of the path variable in the cenplot config. All BED files should have no header.
         cfg_cenplot:
           type: string
           default: config/base_cenplot.toml
+          description: Base config file for cenplot.
         treatment:
           type: object
           additionalProperties: false
           properties:
             name:
               type: string
+              description: Name of treatment group.
             reads:
               type: array
+              description: Reads for treatment group. Either fastq.gz or uBAM.
               items:
                 type: string
         control:
@@ -42,8 +53,10 @@ properties:
           properties:
             name:
               type: string
+              description: Name of control group.
             reads:
               type: array
+              description: Reads for control group. Either fastq.gz or uBAM.
               items:
                 type: string
         required:

@@ -1,13 +1,15 @@
+threads_pileup: 30
 min_read_length: 0
+filter_threshold: 0.99
 samples:
   - name: AG16777
     asm_fa: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/results/AG16777/results/2-concat_asm/AG16777-asm-renamed-reort.fa
-    bed: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/Snakemake-DiMeLo-seq-Viz/AG16777.bed
+    bed: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/Snakemake-DiMeLo-seq-Viz/config/AG16777.bed
     tracks:
-      cdr: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/cdr_no_coords.bed
-      stv: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/stv_no_coords.bed
-      methyl: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/methyl_no_coords.bed
-      sat_annot: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/sat_annot_no_coords.bed
+      cdr: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/cdr.bed
+      stv: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/stv.bed
+      methyl: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/methyl.bed
+      sat_annot: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/sat_annot.bed
     cfg_cenplot: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/Snakemake-DiMeLo-seq-Viz/config/ag16777.toml
     treatment:
       name: CENPA
