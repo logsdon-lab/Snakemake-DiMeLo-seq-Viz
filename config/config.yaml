@@ -1,0 +1,32 @@
+threads_pileup: 30
+min_read_length: 0
+filter_threshold: 0.99
+samples:
+  - name: AG16777
+    asm_fa: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/results/AG16777/results/2-concat_asm/AG16777-asm-renamed-reort.fa
+    bed: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/Snakemake-DiMeLo-seq-Viz/config/AG16777.bed
+    tracks:
+      cdr: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/cdr.bed
+      stv: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/stv.bed
+      methyl: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/methyl.bed
+      sat_annot: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/data/sat_annot.bed
+    cfg_cenplot: /project/logsdon_shared/projects/T21_AG167_trio/CenMAP/KO_working/Snakemake-DiMeLo-seq-Viz/config/ag16777.toml
+    treatment:
+      name: CENPA
+      reads:
+      - /project/logsdon_shared/long_read_archive/unsorted/20250923_DMLseq_AG16777_P_ULK114/CENPA/20250923_1340_3B_PBG32965_0c86826c/pod5/basecalling/20250923_DMLseq_AG16777_P_ULK114.bam
+    control:
+      name: IgG
+      reads:
+      - /project/logsdon_shared/long_read_archive/unsorted/20250923_DMLseq_AG16777_P_ULK114/IgG/20250923_1340_3G_PBG20978_91954904/pod5/basecalling/20250923_DMLseq_AG16777_P_ULK114.bam
+
+# winnowmap, pbmm2, or minimap2
+# aligner_opts is optional. See README.md for defaults.
+aligner: "minimap2"
+aligner_opts: "-y -a --eqx --cs -x lr:hqae -I8g -s 4000"
+output_dir: "results"
+logs_dir: "logs"
+benchmarks_dir: "benchmarks"
+threads_aln: 24
+mem_aln: 50G
+samtools_view_flag: 2308

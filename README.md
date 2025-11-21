@@ -3,15 +3,20 @@ Workflow to visualize DiMeLo-seq data. For HGSVC centromere paper.
 
 ```yaml
 align:
-  # Number of zscores (stdev) to filter abnormal m6A reads.
-  filter_lt_m6a_zscore:
-  - 2.0
   # Minimum read length
   min_read_length: 0
   samples:
     - name: HG00513
       # Assembly to align to
       asm_fa: /project/logsdon_shared/projects/HGSVC3/new_65_asms_renamed/HG00513-asm-renamed-reort.fa
+      # Bedfile of region.
+      bed: ""
+      # Additional tracks to add
+      tracks:
+        sat_annot: ""
+        stv: ""
+      # Format of plot
+      cfg_cenplot: "config/base_cenplot.toml"
       treatment:
         name: CENPA
         reads:
@@ -38,32 +43,11 @@ To run on UPenn's LPC.
 snakemake -p --configfile config.yaml --sdm conda --executor lsf --rerun-triggers mtime -j 20 -n
 ```
 
-## `mbamstats`
-A binary for a rust script to filter abnormal m6a reads is provided in `workflow/scripts/mbamstats`. This will filter reads by:
-1. Collect reads m6a modification stats for each read:
-    * Count all possible AT sites.
-    * Get all possible m6A sites and filter based on if meet modification threshold of 80%.
-    * Calculate the valid proportion of m6A sites by dividing the total number of valid sites over all possible sites.
-2. Calculate the mean and stdev valid proportion across all reads.
-3. Then, for each read, calculate the valid proporition z-score to be filtered downstream.
-
-To recompile, `rust` is required.
-```bash
-pushd workflow/scripts/mbamstats
-cargo build --release
-rm ../bin_mbamstats && cp target/release/mbamstats ../bin_mbamstats
-popd
-```
-
-## `analysis_workflow_unfilter30.py`
-Script contributed by Shenghan Gao that intersects each pileup from the control and treatment with the centromere region, normalizes the treatment signal by the control, and generates `cenplot` images.
-
-> [!NOTE]
-> Only functions on UPenn's LPC. Must be rewritten to fit use-case.
+## `plot_enrichment.py`
+Original script (`analysis_workflow_unfilter30.py`) contributed by Shenghan Gao. Normalizes the treatment signal by the control and generates `cenplot` images.
 
 Briefly, it:
 * Generates 5 kbp non-overlapping windows of the control and treatment pileup.
-* Intersects the pileups with a given centromere array bed file.
 * Subtracts the control pileup from the treatment pileup.
 * Generate a cenplot config toml file.
 * Plots the CENP-A signal.

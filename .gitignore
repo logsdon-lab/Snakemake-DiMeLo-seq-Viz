@@ -6,7 +6,6 @@ results*
 exp
 old
 *.xml
-config*
 nohup*
 *_working
 tmp*
