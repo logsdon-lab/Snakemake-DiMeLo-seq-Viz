@@ -107,10 +107,17 @@ def main():
         assert isinstance(tracks_json, dict), (
             "Invalid tracks format. Expects {dtype: path}"
         )
+
+        def try_read(path) -> pl.DataFrame:
+            try:
+                return pl.read_csv(path, separator="\t", has_header=False).rename(
+                    {"column_1": "chrom"}
+                )
+            except pl.exceptions.NoDataError:
+                return pl.DataFrame(schema={"chrom": pl.String})
+
         dfs_tracks = {
-            dtype: pl.read_csv(path, separator="\t", has_header=False).rename(
-                {"column_1": "chrom"}
-            )
+            dtype: try_read(path)
             for dtype, path in tracks_json.items()
         }
     else:
