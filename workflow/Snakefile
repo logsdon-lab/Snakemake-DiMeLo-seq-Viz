@@ -9,6 +9,7 @@ validate(config, "../config/config.schema.yaml")
 
 OUTPUT_DIR = config["output_dir"]
 LOG_DIR = config["logs_dir"]
+CLEANUP_TEMPFILES = config.get("cleanup_tempfiles", True)
 
 # {sm: {'treatment': {'name': str, 'reads': list[str] }, 'control': ... , 'asm_fa': str}}
 SAMPLES = defaultdict(lambda: defaultdict(dict))
@@ -152,7 +153,7 @@ rule intersect_tracks:
         tracks=lambda wc: SAMPLES[wc.sm]["tracks"].values(),
         bed=lambda wc: SAMPLES[wc.sm]["bed"],
     output:
-        touch(os.path.join(OUTPUT_DIR, "intersect_tracks_{sm}.done")),
+        temp(os.path.join(OUTPUT_DIR, "intersect_tracks_{sm}.fofn")),
     conda:
         "envs/env.yaml"
     shell:
@@ -161,8 +162,9 @@ rule intersect_tracks:
             exit 0
         fi 
         for infile in {input.tracks}; do
-            outfile="${{infile}}.tmp"
+            outfile="${{infile}}.{wildcards.sm}.tmp"
             bedtools intersect -a ${{infile}} -b {input.bed} > ${{outfile}}
+            echo ${{outfile}} >> {output}
         done
         """
 
@@ -200,7 +202,7 @@ def json_tracks(wc, input) -> str:
     }
     if input.tracks_intersect:
         for dtype, track in SAMPLES[wc.sm]["tracks"].items():
-            tracks[f'"{dtype}"'] = f'"{track}.tmp"'
+            tracks[f'"{dtype}"'] = f'"{track}.{wc.sm}.tmp"'
     return f'-j "{json.dumps(tracks)}"'
 
 
@@ -238,6 +240,11 @@ rule draw_plot:
         cfg_cenplot=lambda wc, input: (
             f"--base_cenplot_cfg {input.cfg_cenplot}" if input.cfg_cenplot else ""
         ),
+        cmd_cleanup=lambda wc, input: (
+            f"cat {input.tracks_intersect} | xargs rm -f"
+            if SAMPLES[wc.sm]["tracks"] and CLEANUP_TEMPFILES
+            else "echo 'No tracks or not cleaning up tempfiles.'"
+        )
     log:
         os.path.join(LOG_DIR, "draw_plot_{sm}.log"),
     conda:
@@ -251,6 +258,7 @@ rule draw_plot:
         -w {params.window} \
         -o {output.plot_dir} \
         {params.json_tracks} {params.cfg_cenplot} 2> {log}
+        {{ {params.cmd_cleanup} ;}} &>> {log}
         """
 
 

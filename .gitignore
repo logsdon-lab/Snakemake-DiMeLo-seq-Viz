@@ -10,3 +10,5 @@ nohup*
 *_working
 tmp*
 output.md
+*.bed
+*.tmp
