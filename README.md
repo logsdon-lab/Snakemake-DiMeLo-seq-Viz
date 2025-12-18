@@ -89,8 +89,8 @@ legend_title = "Structure"
 legend_title_only = true
 ```
 
-> [!INFO]
-> For a full list of parameters, see `/project/logsdon_shared/projects/T21_AG167_trio/Snakemake-DiMeLo-seq-Viz/config/config.schema.yaml`.
+> [!NOTE]
+> For a full list of parameters, see `config/config.schema.yaml`.
 
 ## Run
 ```bash
