@@ -10,6 +10,8 @@ validate(config, "../config/config.schema.yaml")
 OUTPUT_DIR = config["output_dir"]
 LOG_DIR = config["logs_dir"]
 CLEANUP_TEMPFILES = config.get("cleanup_tempfiles", True)
+MIN_READ_LENGTH = config["min_read_length"]
+MIN_MAPQ = config["min_mapq"]
 
 # {sm: {'treatment': {'name': str, 'reads': list[str] }, 'control': ... , 'asm_fa': str}}
 SAMPLES = defaultdict(lambda: defaultdict(dict))
@@ -42,7 +44,7 @@ for sm, sm_cfg in SAMPLES.items():
                 "name": f"{sm}_{grp}",
                 "asm_fa": sm_cfg["asm_fa"],
                 "reads": sm_cfg[grp]["reads"],
-                "min_read_length": config["min_read_length"],
+                "min_read_length": MIN_READ_LENGTH,
             }
         )
 
@@ -60,9 +62,38 @@ module Align:
 use rule * from Align
 
 
-rule pileup_m6a:
+rule filter_by_mapq:
     input:
         bam=join(OUTPUT_DIR, "{sm}_{grp}.bam"),
+    output:
+        bam=join(OUTPUT_DIR, f"{{sm}}_{{grp}}_min_mapq_{MIN_MAPQ}.bam"),
+        bai=join(OUTPUT_DIR, f"{{sm}}_{{grp}}_min_mapq_{MIN_MAPQ}.bam.bai"),
+    conda:
+        "envs/env.yaml"
+    params:
+        min_mapq=MIN_MAPQ
+    log:
+        os.path.join(LOG_DIR, "filter_by_mapq_{sm}_{grp}.log"),
+    threads:
+        config["threads_pileup"]
+    shell:
+        """
+        samtools view -bh \
+        -q {params.min_mapq} \
+        -o {output.bam} \
+        -@ {threads} \
+        {input.bam} 2> {log}
+        samtools index {output.bam} 2>> {log}
+        """
+
+
+rule pileup_m6a:
+    input:
+        bam=(
+            join(OUTPUT_DIR, "{sm}_{grp}.bam")
+            if MIN_MAPQ == 0
+            else rules.filter_by_mapq.output.bam
+        ),
         fa=lambda wc: SAMPLES[wc.sm]["asm_fa"],
         bed=lambda wc: SAMPLES[wc.sm]["bed"],
     output:
