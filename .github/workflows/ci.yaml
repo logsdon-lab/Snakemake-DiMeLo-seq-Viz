@@ -1,0 +1,38 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  ENV: env.yaml
+
+jobs:
+  test_scripts_and_workflow_logic:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+    - name: Checkout directory.
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    # https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
+    - name: Delete huge unnecessary tools folder
+      run: rm -rf /opt/hostedtoolcache
+    - name: Setup Miniforge.
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniforge-version: latest
+        activate-environment: dev
+    - name: Update environment.
+      run:
+        conda env update -n dev -f ${{ env.ENV }}
+    - name: Test NA20355 chromosome 8.
+      run: |
+        snakemake -c 2 -np \
+        --workflow-profile none \
+        --configfile test/config/config_NA20355.yaml \
+        --sdm conda \
+        --show-failed-logs \
+        --conda-cleanup-pkgs cache \
+        --conda-frontend conda

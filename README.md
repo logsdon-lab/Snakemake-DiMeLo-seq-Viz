@@ -1,53 +1,109 @@
 # Snakemake_DiMeLo-seq_Viz
-Workflow to visualize DiMeLo-seq data. For HGSVC centromere paper.
+Workflow to visualize DiMeLo-seq data with optional bells and whistles.
 
+![](docs/NA20355_chr8_haplotype1-0000017.png)
+
+> NA20355 H1 chromosome 8
+
+## Getting Started
+```bash
+git clone https://github.com/logsdon-lab/Snakemake-DiMeLo-seq-Viz.git --recursive
+cd Snakemake-DiMeLo-seq-Viz
+```
+
+Install Snakemake
+```bash
+conda env create -f env.yaml --name smk-dimelo-vis
+conda activate smk-dimelo-vis
+```
+
+## Configuration
+Copy and modify the configfile for your samples
+```bash
+cp config/config_template.yaml config/new_config.yaml
+```
+
+Modify the config by adding:
+* A sample name
+* A path to assembly
+* A BED file of region to visualize
+* A name + path to reads of the treatment and the control case.
+
+An example of an updated config:
 ```yaml
-align:
-  # Minimum read length
-  min_read_length: 0
-  samples:
-    - name: HG00513
-      # Assembly to align to
-      asm_fa: /project/logsdon_shared/projects/HGSVC3/new_65_asms_renamed/HG00513-asm-renamed-reort.fa
-      # Bedfile of region.
-      bed: ""
-      # Additional tracks to add
-      tracks:
-        sat_annot: ""
-        stv: ""
-      # Format of plot
-      cfg_cenplot: "config/base_cenplot.toml"
-      treatment:
-        name: CENPA
-        reads:
-        # Reads
-        - /project/logsdon_shared/long_read_archive/unsorted/20250729_DMLseq_HG00513_ULK114/D5C/20250729_1253_3B_PAY70585_ab403a2d/pod5/basecalling/20250729_DMLseq_HG00513_ULK114.bam
-      control:
-        name: "IgG"
-        reads:
-        - /project/logsdon_shared/long_read_archive/unsorted/20250729_DMLseq_HG00513_ULK114/D5I/20250729_1253_3D_PBC11952_e0f51ee7/pod5/basecalling/20250729_DMLseq_HG00513_ULK114.bam
-        - /project/logsdon_shared/projects/HGSVC3/NA20355_Dimelo/tmp_HG00513_IgG_bam/20250730_DMLseq_HG00513_ULK114.bam
+samples:
+  - name: HG00513
+    # Assembly to align to
+    asm_fa: data/assembly/HG00513-asm-renamed-reort.fa
+    # Bedfile of region.
+    bed: "data/bed/HG00513_centromere.bed"
+    treatment:
+      name: CENPA
+      reads:
+      # Reads as unaligned BAM file.
+      - data/reads/CENPA/20250729_DMLseq_HG00513_ULK114.bam
+    control:
+      name: "IgG"
+      reads:
+      - data/reads/IgG/20250729_DMLseq_HG00513_ULK114.bam
 
   aligner: "minimap2"
   aligner_opts: "-y -a --eqx --cs -x lr:hqae -I8g -s 4000"
-  output_dir: "results_HG00513/align"
-  logs_dir: "logs_HG00513/align"
-  benchmarks_dir: "benchmarks_HG00513/align"
+  output_dir: "results/align"
+  logs_dir: "logs/align"
+  benchmarks_dir: "benchmarks/align"
   threads_aln: 24
   mem_aln: 50G
   samtools_view_flag: 2308
 ```
 
-To run on UPenn's LPC.
+The output plot can be modified and additional tracks can be added by modifying the base cenplot toml and adding it
 ```bash
-snakemake -p --configfile config.yaml --sdm conda --executor lsf --rerun-triggers mtime -j 20 -n
+cp config/base_cenplot.toml config/base_cenplot_modified.toml
 ```
 
-## `plot_enrichment.py`
-Original script (`analysis_workflow_unfilter30.py`) contributed by Shenghan Gao. Normalizes the treatment signal by the control and generates `cenplot` images.
+```yaml
+samples:
+  - name: HG00513
+    asm_fa: data/assembly/HG00513-asm-renamed-reort.fa
+    bed: "data/bed/HG00513_centromere.bed"
+    # Add a satellite annotation track
+    tracks:
+      sat_annot: test/data/HG00513_sat_annot.bed.gz
+    # With this plot format.
+    cfg_cenplot: test/config/base_cenplot_modified.toml
+```
 
-Briefly, it:
-* Generates 5 kbp non-overlapping windows of the control and treatment pileup.
-* Subtracts the control pileup from the treatment pileup.
-* Generate a cenplot config toml file.
-* Plots the CENP-A signal.
+Where the `cfg_cenplot` track's path matches the track name.
+```toml
+[[tracks]]
+position = "relative"
+proportion = 0.025
+type = "label"
+path = "sat_annot" # <-- Matches tracks.sat_annot
+
+[tracks.options]
+legend = true
+hide_x = true
+legend_title = "Structure"
+legend_title_only = true
+```
+
+> [!INFO]
+> For a full list of parameters, see `/project/logsdon_shared/projects/T21_AG167_trio/Snakemake-DiMeLo-seq-Viz/config/config.schema.yaml`.
+
+## Run
+```bash
+snakemake -p --configfile config/new_config.yaml --sdm conda -c 20 -n
+```
+
+## Test
+Run example on NA20355 chr8.
+```bash
+# Installs conda environments
+# Roughly ~3 minutes.
+snakemake -p --configfile test/config/config_NA20355.yaml --sdm conda -c 20 -n
+```
+
+## Cite
+**Gao S, Oshima KK**, Chuang SC, Loftus M, Montanari A, Gordon DS, Human Genome Structural Variation Consortium, Human Pangenome Reference Consortium, Hsieh P, Konkel MK, Ventura M, Logsdon GA. A global view of human centromere variation and evolution. bioRxiv. 2025. p. 2025.12.09.693231. [doi:10.64898/2025.12.09.693231](https://doi.org/10.64898/2025.12.09.693231)

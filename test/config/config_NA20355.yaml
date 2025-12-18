@@ -1,0 +1,28 @@
+
+min_read_length: 0
+samples:
+  - name: NA20355_chr8
+    asm_fa: test/data/NA20355_chr8_haplotype1-0000017.fa.gz
+    bed: test/data/NA20355_chr8_haplotype1-0000017.bed
+    tracks:
+      sat_annot: test/data/NA20355_chr8_sat_annot.bed.gz
+    cfg_cenplot: test/config/cenplot.toml
+    treatment:
+      name: CENPA
+      reads:
+      - test/data/NA20355_chr8_CENPA.fq.gz
+    control:
+      name: "IgG"
+      reads:
+      - test/data/NA20355_chr8_IgG.fq.gz
+
+# winnowmap, pbmm2, or minimap2
+# aligner_opts is optional. See README.md for defaults.
+aligner: "minimap2"
+aligner_opts: "-y -a --eqx --cs -x lr:hqae -I8g -s 4000"
+output_dir: "test/results/align"
+logs_dir: "test/logs/align"
+benchmarks_dir: "test/benchmarks/align"
+threads_aln: 24
+mem_aln: 50G
+samtools_view_flag: 2308

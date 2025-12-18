@@ -64,18 +64,17 @@ use rule * from Align
 
 rule filter_by_mapq:
     input:
-        bam=join(OUTPUT_DIR, "{sm}_{grp}.bam"),
+        bam=expand(rules.merge_read_asm_alignments.output.alignment, sm="{sm}_{grp}"),
     output:
         bam=join(OUTPUT_DIR, f"{{sm}}_{{grp}}_min_mapq_{MIN_MAPQ}.bam"),
         bai=join(OUTPUT_DIR, f"{{sm}}_{{grp}}_min_mapq_{MIN_MAPQ}.bam.bai"),
     conda:
         "envs/env.yaml"
     params:
-        min_mapq=MIN_MAPQ
+        min_mapq=MIN_MAPQ,
     log:
         os.path.join(LOG_DIR, "filter_by_mapq_{sm}_{grp}.log"),
-    threads:
-        config["threads_pileup"]
+    threads: config["threads_pileup"]
     shell:
         """
         samtools view -bh \
@@ -90,11 +89,11 @@ rule filter_by_mapq:
 rule pileup_m6a:
     input:
         bam=(
-            join(OUTPUT_DIR, "{sm}_{grp}.bam")
+            expand(rules.merge_read_asm_alignments.output.alignment, sm="{sm}_{grp}")
             if MIN_MAPQ == 0
             else rules.filter_by_mapq.output.bam
         ),
-        fa=lambda wc: SAMPLES[wc.sm]["asm_fa"],
+        fa=expand(rules.merge_asm_files.output.asm, sm="{sm}_{grp}"),
         bed=lambda wc: SAMPLES[wc.sm]["bed"],
     output:
         bed=join(OUTPUT_DIR, "{sm}_{grp}.bed.gz"),
@@ -125,7 +124,7 @@ rule pileup_m6a:
 
 rule dmr_pair:
     input:
-        fa=lambda wc: SAMPLES[wc.sm]["asm_fa"],
+        fa=expand(rules.merge_asm_files.output.asm, sm="{sm}_control"),
         control_bed=lambda wc: expand(
             rules.pileup_m6a.output,
             sm=wc.sm,
@@ -191,10 +190,10 @@ rule intersect_tracks:
         """
         if [ -z "{input.tracks}" ]; then
             exit 0
-        fi 
+        fi
         for infile in {input.tracks}; do
             outfile="${{infile}}.{wildcards.sm}.tmp"
-            bedtools intersect -a ${{infile}} -b {input.bed} > ${{outfile}}
+            bedtools intersect -a <(zcat -f ${{infile}}) -b {input.bed} > ${{outfile}}
             echo ${{outfile}} >> {output}
         done
         """
@@ -275,7 +274,7 @@ rule draw_plot:
             f"cat {input.tracks_intersect} | xargs rm -f"
             if SAMPLES[wc.sm]["tracks"] and CLEANUP_TEMPFILES
             else "echo 'No tracks or not cleaning up tempfiles.'"
-        )
+        ),
     log:
         os.path.join(LOG_DIR, "draw_plot_{sm}.log"),
     conda:

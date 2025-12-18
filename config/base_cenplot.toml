@@ -72,7 +72,7 @@ proportion = 0.05
 path = "cov_treatment"
 
 [tracks.options]
-hide_x = false
+hide_x = true
 legend = true
 label = "CENP-A read depth (X)"
 linestyle = "none"

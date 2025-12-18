@@ -1,5 +1,4 @@
 .snakemake
-data
 logs*
 benchmarks*
 results*
