@@ -1,4 +1,6 @@
 # Snakemake_DiMeLo-seq_Viz
+[![CI](https://github.com/logsdon-lab/Snakemake-DiMeLo-seq-Viz/actions/workflows/ci.yaml/badge.svg)](https://github.com/logsdon-lab/Snakemake-DiMeLo-seq-Viz/actions/workflows/ci.yaml)
+
 Workflow to visualize DiMeLo-seq data with optional bells and whistles.
 
 ![](docs/NA20355_chr8_haplotype1-0000017.png)
@@ -27,20 +29,20 @@ Modify the config by adding:
 * A sample name
 * A path to assembly
 * A BED file of region to visualize
-* A name + path to reads of the treatment and the control case.
+* A name + path to reads (`uBAM` or `fastq.gz` with m6A MM and ML tags) of the treatment (`CENP-A`) and the control (`IgG`) case.
 
 An example of an updated config:
 ```yaml
 samples:
   - name: HG00513
-    # Assembly to align to
+    # Assembly to align to.
     asm_fa: data/assembly/HG00513-asm-renamed-reort.fa
     # Bedfile of region.
     bed: "data/bed/HG00513_centromere.bed"
     treatment:
       name: CENPA
       reads:
-      # Reads as unaligned BAM file.
+      # Reads as unaligned BAM file of fastq.gz with MM and ML tags in name.
       - data/reads/CENPA/20250729_DMLseq_HG00513_ULK114.bam
     control:
       name: "IgG"
