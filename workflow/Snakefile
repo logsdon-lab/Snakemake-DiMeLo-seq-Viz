@@ -162,6 +162,8 @@ rule filter_dmr_pair:
         rules.dmr_pair.output,
     output:
         bed=join(OUTPUT_DIR, "{sm}_dmr_filter_merge.bed.gz"),
+    conda:
+        "envs/env.yaml"
     params:
         # https://nanoporetech.github.io/modkit/dmr_scoring_details.html
         lt_cohen_h=-3.1,

@@ -29,7 +29,7 @@ jobs:
         conda env update -n dev -f ${{ env.ENV }}
     - name: Test NA20355 chromosome 8.
       run: |
-        snakemake -c 2 -p \
+        snakemake -c 4 -p \
         --workflow-profile none \
         --configfile test/config/config_NA20355.yaml \
         --sdm conda \

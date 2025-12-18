@@ -103,7 +103,7 @@ snakemake -p --configfile config/new_config.yaml --sdm conda -c 20 -n
 Run example on NA20355 chr8.
 ```bash
 # Installs conda environments
-# Roughly ~3 minutes.
+# Roughly ~5 minutes.
 snakemake -p --configfile test/config/config_NA20355.yaml --sdm conda -c 20 -n
 ```
 
