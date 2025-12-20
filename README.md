@@ -99,6 +99,10 @@ legend_title_only = true
 snakemake -p --configfile config/new_config.yaml --sdm conda -c 20 -n
 ```
 
+## Output
+Final plots can be found at:
+* `OUTPUT_DIR/plots/{sm}`
+
 ## Test
 Run example on NA20355 chr8.
 ```bash
