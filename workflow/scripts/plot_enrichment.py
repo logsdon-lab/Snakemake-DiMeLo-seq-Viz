@@ -89,7 +89,8 @@ def main():
             pl.col("idx").fill_null(pl.col("idx_right")),
             pl.col("chrom").fill_null(pl.col("chrom_right")),
             pl.col("min_st").fill_null(pl.col("min_st_right")),
-            pl.col("value").fill_null(pl.lit(0.0)),
+            pl.col("value").fill_null(pl.col("value_right")),
+            pl.col("value_right").fill_null(pl.col("value")),
         )
         .with_columns(
             # N_mod_treatment - N_mod_control
@@ -99,6 +100,7 @@ def main():
         )
         .select("chrom", "st", "end", "value_diff")
         .sort("chrom", "st")
+        .unique(subset=["chrom", "st", "end"], maintain_order=True)
     )
 
     if args.json_tracks:
@@ -116,10 +118,7 @@ def main():
             except pl.exceptions.NoDataError:
                 return pl.DataFrame(schema={"chrom": pl.String})
 
-        dfs_tracks = {
-            dtype: try_read(path)
-            for dtype, path in tracks_json.items()
-        }
+        dfs_tracks = {dtype: try_read(path) for dtype, path in tracks_json.items()}
     else:
         dfs_tracks = {}
 
