@@ -74,6 +74,7 @@ def main():
     ap.add_argument(
         "-b", "--base_cenplot_cfg", type=argparse.FileType("rt"), default=None
     )
+    ap.add_argument("-m", "--mode", choices=["diff", "ratio"], type=str, default="diff")
     ap.add_argument("-o", "--output_dir", type=str, default="./output")
 
     args = ap.parse_args()
@@ -94,10 +95,15 @@ def main():
         )
         .with_columns(
             # N_mod_treatment - N_mod_control
-            value_diff=pl.col("value") - pl.col("value_right"),
+            value_diff=(
+                pl.col("value") - pl.col("value_right")
+                if args.mode == "diff"
+                else pl.col("value") / pl.col("value_right")
+            ),
             st=pl.col("min_st") + (pl.col("idx") * args.window),
             end=pl.col("min_st") + ((pl.col("idx") + 1) * args.window),
         )
+        .filter(~pl.col("value_diff").is_nan())
         .select("chrom", "st", "end", "value_diff")
         .sort("chrom", "st")
         .unique(subset=["chrom", "st", "end"], maintain_order=True)

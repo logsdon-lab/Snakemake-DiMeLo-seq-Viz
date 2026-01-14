@@ -9,6 +9,11 @@ properties:
   threads_pileup:
     type: integer
     default: 1
+  mode:
+    type: string
+    enum: [ratio, diff]
+    default: diff
+    description: Mode to compare difference between treatment and control.
   filter_threshold:
     type: number
     default: 0.95
