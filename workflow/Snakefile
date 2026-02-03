@@ -112,7 +112,7 @@ rule pileup_m6a:
             {input.bam} \
             - \
             --ref {input.fa} \
-            --include-bed {input.bed} \
+            --include-bed <(cut -f1-3 {input.bed}) \
             -t {threads} \
             --motif {params.motif} \
             --filter-threshold {params.filter_threshold} | \

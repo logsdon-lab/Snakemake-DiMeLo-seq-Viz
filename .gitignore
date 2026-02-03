@@ -11,3 +11,4 @@ tmp*
 output.md
 *.bed
 *.tmp
+*.gz
