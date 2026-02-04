@@ -75,6 +75,7 @@ def main():
     ap.add_argument(
         "-b", "--base_cenplot_cfg", type=argparse.FileType("rt"), default=None
     )
+    ap.add_argument("-m", "--mode", choices=["diff", "ratio"], type=str, default="diff")
     ap.add_argument("-o", "--output_dir", type=str, default="./output")
 
     args = ap.parse_args()
@@ -90,16 +91,23 @@ def main():
             pl.col("idx").fill_null(pl.col("idx_right")),
             pl.col("chrom").fill_null(pl.col("chrom_right")),
             pl.col("min_st").fill_null(pl.col("min_st_right")),
-            pl.col("value").fill_null(pl.lit(0.0)),
+            pl.col("value").fill_null(pl.col("value_right")),
+            pl.col("value_right").fill_null(pl.col("value")),
         )
         .with_columns(
             # N_mod_treatment - N_mod_control
-            value_diff=pl.col("value") - pl.col("value_right"),
+            value_diff=(
+                pl.col("value") - pl.col("value_right")
+                if args.mode == "diff"
+                else pl.col("value") / pl.col("value_right")
+            ),
             st=pl.col("min_st") + (pl.col("idx") * args.window),
             end=pl.col("min_st") + ((pl.col("idx") + 1) * args.window),
         )
+        .filter(~pl.col("value_diff").is_nan())
         .select("chrom", "st", "end", "value_diff")
         .sort("chrom", "st")
+        .unique(subset=["chrom", "st", "end"], maintain_order=True)
     )
 
     if args.json_tracks:
