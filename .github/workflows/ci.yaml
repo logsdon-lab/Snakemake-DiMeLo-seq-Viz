@@ -16,6 +16,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: 'recursive'
+        lfs: 'true'
     # https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
     - name: Delete huge unnecessary tools folder
       run: rm -rf /opt/hostedtoolcache
@@ -35,4 +36,15 @@ jobs:
         --sdm conda \
         --show-failed-logs \
         --conda-cleanup-pkgs cache \
-        --conda-frontend conda
+        --conda-frontend conda \
+        --all-temp
+    - name: Test HG008 chromsome 16.
+      run: |
+        snakemake -c 4 -p \
+        --workflow-profile none \
+        --configfile test/config/config_HG008.yaml \
+        --sdm conda \
+        --show-failed-logs \
+        --conda-cleanup-pkgs cache \
+        --conda-frontend conda \
+        --all-temp

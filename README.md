@@ -36,6 +36,7 @@ An example of an updated config:
 samples:
   - name: HG00513
     # Assembly to align to.
+    # Do not include coordinates (ex. chr1:1-50000) in the sequence name.
     asm_fa: data/assembly/HG00513-asm-renamed-reort.fa
     # Bedfile of region.
     bed: "data/bed/HG00513_centromere.bed"
@@ -48,6 +49,7 @@ samples:
       name: "IgG"
       reads:
       - data/reads/IgG/20250729_DMLseq_HG00513_ULK114.bam
+    modification: AT # or CG
 
   aligner: "minimap2"
   aligner_opts: "-y -a --eqx --cs -x lr:hqae -I8g -s 4000"

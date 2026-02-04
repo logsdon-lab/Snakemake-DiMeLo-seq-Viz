@@ -44,6 +44,11 @@ properties:
           type: string
           default: config/base_cenplot.toml
           description: Base config file for cenplot.
+        modification:
+          type: string
+          default: AT
+          enum: ["AT", "CG"]
+          description: "Which modification to use in pileup."
         treatment:
           type: object
           additionalProperties: false

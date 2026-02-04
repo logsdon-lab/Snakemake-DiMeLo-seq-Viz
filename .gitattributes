@@ -1,0 +1,2 @@
+test/data/HG008-N_chr16_H2.bam filter=lfs diff=lfs merge=lfs -text
+test/data/HG008-T_chr16_H2.bam filter=lfs diff=lfs merge=lfs -text

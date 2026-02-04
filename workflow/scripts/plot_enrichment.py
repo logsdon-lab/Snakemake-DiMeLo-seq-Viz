@@ -40,6 +40,7 @@ def generate_window_pileup(pileup: TextIO, window: int) -> pl.DataFrame:
         has_header=False,
         separator="\t",
         columns=[0, 1, 2, 3],
+        comment_prefix="#",
         new_columns=["chrom", "st", "end", "value"],
     )
     return (
@@ -110,16 +111,13 @@ def main():
 
         def try_read(path) -> pl.DataFrame:
             try:
-                return pl.read_csv(path, separator="\t", has_header=False).rename(
-                    {"column_1": "chrom"}
-                )
+                return pl.read_csv(
+                    path, separator="\t", has_header=False, comment_prefix="#"
+                ).rename({"column_1": "chrom"})
             except pl.exceptions.NoDataError:
                 return pl.DataFrame(schema={"chrom": pl.String})
 
-        dfs_tracks = {
-            dtype: try_read(path)
-            for dtype, path in tracks_json.items()
-        }
+        dfs_tracks = {dtype: try_read(path) for dtype, path in tracks_json.items()}
     else:
         dfs_tracks = {}
 
