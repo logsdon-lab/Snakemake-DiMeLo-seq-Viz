@@ -25,12 +25,11 @@ def main():
         .filter(
             pl.col("map_pvalue_adj").lt(p_value)
             & (
-                pl.col("cohen_h").gt(cohen_h)
+                # Is signed.
+                # (+) indicates greater change in control since modkit uses `control - treatment`
+                pl.col("cohen_h").abs().gt(cohen_h)
+                # Lower bound is not signed.
                 & pl.col("cohen_h_low").gt(cohen_h_lower_bound)
-            )
-            | (
-                pl.col("cohen_h").lt(-cohen_h)
-                & pl.col("cohen_h_low").lt(-cohen_h_lower_bound)
             )
         )
         .sort("#chrom", "start")
