@@ -94,6 +94,13 @@ rule pileup_mods:
             if MIN_MAPQ == 0
             else rules.filter_by_mapq.output.bam
         ),
+        bai=(
+            expand(
+                rules.merge_read_asm_alignments.output.alignment_idx, sm="{sm}_{grp}"
+            )
+            if MIN_MAPQ == 0
+            else rules.filter_by_mapq.output.bai
+        ),
         fa=expand(rules.merge_asm_files.output.asm, sm="{sm}_{grp}"),
         bed=lambda wc: SAMPLES[wc.sm]["bed"],
     output:
