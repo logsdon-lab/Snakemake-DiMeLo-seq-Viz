@@ -16,6 +16,8 @@ def main():
         schema_overrides={
             "a_pct_modified": pl.Float64,
             "b_pct_modified": pl.Float64,
+            "map_pvalue": pl.Float64,
+            "cohen_h": pl.Float64,
             "effect_size": pl.Float64,
         },
     )
