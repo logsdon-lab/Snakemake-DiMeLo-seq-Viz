@@ -27,11 +27,13 @@ def main():
         .filter(
             pl.col("map_pvalue_adj").lt(p_value)
             & (
+                # https://github.com/nanoporetech/modkit/issues/629#issuecomment-4607764008
+                # https://github.com/nanoporetech/modkit/issues/451#issuecomment-2951160905
                 # Is signed.
                 # (+) indicates greater change in control since modkit uses `control - treatment`
                 pl.col("cohen_h").abs().gt(cohen_h)
                 # Lower bound is not signed.
-                & pl.col("cohen_h_low").gt(cohen_h_lower_bound)
+                & pl.col("cohen_h_low").ge(cohen_h_lower_bound)
             )
         )
         .sort("#chrom", "start")

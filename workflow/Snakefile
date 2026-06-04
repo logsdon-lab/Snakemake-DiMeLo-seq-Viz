@@ -182,8 +182,8 @@ rule filter_dmr_pair:
         script=workflow.source_path("scripts/adjust_pvalue.py"),
         # https://en.wikipedia.org/wiki/Cohen%27s_h
         # https://nanoporetech.github.io/modkit/dmr_scoring_details.html
-        cohen_h=3.1,
-        cohen_h_lower_bound=0.8,
+        cohen_h=0.8,
+        cohen_h_lower_bound=0.4,
         pvalue=0.05,
     shell:
         """
